@@ -1,0 +1,22 @@
+{
+	// Manually setting parsing syntax
+	"syntax_lists":
+	[
+		[
+			"C++.sublime-syntax",
+			[
+				"h",
+				"c",
+				"hpp",
+				"cpp"
+			]
+		]
+	],
+	// File that won't be show
+	// "exclude_files":["css"],
+	// Showing the same file type or both in related_list
+	"related_list": [
+		["h", "c", "hpp", "cpp"],
+		["js", "css"]
+	]
+}

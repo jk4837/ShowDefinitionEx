@@ -1,0 +1,4 @@
+[
+	{ "keys": ["f10"], "command": "show_definition_ex_toggle" },
+	{ "keys": ["shift+f10"], "command": "show_definition_ex_sel" }
+]
