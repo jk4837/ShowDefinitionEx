@@ -1,0 +1,4 @@
+[
+	{ "keys": ["f10"], "command": "show_definition_ex_sel" },
+	{ "keys": ["f11"], "command": "show_definition_ex_toggle" }
+]

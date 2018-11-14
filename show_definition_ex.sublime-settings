@@ -1,0 +1,15 @@
+{
+	// Manually setting parsing syntax
+	"syntax_lists":
+	[
+		[
+			"C++.sublime-syntax",
+			[
+				"h",
+				"c",
+				"hpp",
+				"cpp"
+			]
+		]
+	]
+}
