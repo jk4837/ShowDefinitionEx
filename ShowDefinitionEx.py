@@ -2,6 +2,7 @@ import sublime
 import sublime_plugin
 import re
 import time
+import html
 
 DEBUG = True
 DEBUG = False
@@ -13,9 +14,6 @@ def plugin_loaded():
 	global settings, global_settings
 	settings = sublime.load_settings('show_definition_ex.sublime-settings')
 	global_settings = sublime.active_window().active_view().settings()
-
-def htmlEncode(html):
-	return html.replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace(' ', '&nbsp;')
 
 def symplify_path(path):
 	s = path.split('/');
@@ -317,7 +315,7 @@ class ShowDefinitionExSelCommand(sublime_plugin.TextCommand):
 		view = self.view
 		max_popup_width, max_popup_height = view.viewport_extent()
 		scope_name = parse_scope_full_name(view)
-		view.show_popup(htmlEncode(scope_name), sublime.HIDE_ON_MOUSE_MOVE_AWAY, max_width= max_popup_width, max_height= max_popup_height)
+		view.show_popup(html.escape(scope_name, False), sublime.HIDE_ON_MOUSE_MOVE_AWAY, max_width= max_popup_width, max_height= max_popup_height)
 
 class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 	def run(self, startTime, symbol, point):
@@ -369,7 +367,7 @@ class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 		if 0 != len(self.display_list):
 			if startTime != lastStartTime:
 				print('skip update')
-			content = '<br>'.join([str_tpl % (self.display_list[idx]['ex'][0].upper(), htmlEncode(self.display_list[idx]['name']).replace(symbol, '<m>' + symbol + '</m>', 1), (max_len-len(self.display_list[idx]['name']))*em + 5, idx, htmlEncode(symplify_path(self.display_list[idx]['loc'][1])), self.display_list[idx]['loc'][2][0]) for idx in range(len(self.display_list))])
+			content = '<br>'.join([str_tpl % (self.display_list[idx]['ex'][0].upper(), html.escape(self.display_list[idx]['name'], False).replace(symbol, '<m>' + symbol + '</m>', 1), (max_len-len(self.display_list[idx]['name']))*em + 5, idx, html.escape(symplify_path(self.display_list[idx]['loc'][1]), False), self.display_list[idx]['loc'][2][0]) for idx in range(len(self.display_list))])
 			body = """
 				<body id=show-definitions>
 					<style>
