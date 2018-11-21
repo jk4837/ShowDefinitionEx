@@ -4,15 +4,14 @@ import re
 import time
 import html
 
-DEBUG = True
-DEBUG = False
 lastSymbol = None
 lastStartTime = time.time()
 settings = {}
 
 def plugin_loaded():
-	global settings, global_settings
+	global settings, global_settings, DEBUG
 	settings = sublime.load_settings('show_definition_ex.sublime-settings')
+	DEBUG = settings.get('DEBUG', False)
 	global_settings = sublime.active_window().active_view().settings()
 
 def symplify_path(path):
@@ -51,19 +50,20 @@ def show_hide_view():
 def get_lint_file(filename, own_file = None):
 	global DEBUG, hide_view, hide_view_filename, hide_view_ex, settings, global_settings
 	if hide_view_filename == filename:
-		# print('skip reopen file')
 		return hide_view, hide_view_ex
 
 	ex = get_file_ex(filename)
 	if ex in settings.get('exclude_files',[]):	# Not index file extension
-		print('skip exclude_files file')
+		if DEBUG:
+			print('skip exclude_files file')
 		return None, None
 
 	hide_view_ex = ex
 	if own_file:
 		own_ex = get_file_ex(own_file)
 		if not file_related(hide_view_ex, own_ex):
-			# print('skip none related file', (hide_view_ex, own_ex))
+			if DEBUG:
+				print('skip none related file', (hide_view_ex, own_ex))
 			return None, None
 
 	if hide_view is None:
@@ -71,12 +71,10 @@ def get_lint_file(filename, own_file = None):
 	if DEBUG:
 		show_hide_view()
 	content = None
+
 	try:
 		with open(filename, 'r', encoding = 'utf8') as file:
 			content = file.read()
-		# print('Open file:', filename)
-		global open_cnt
-		open_cnt += 1
 	except Exception as e:
 		print(e, 'Cant open file:', filename)
 		return None, None
@@ -91,11 +89,12 @@ def get_lint_file(filename, own_file = None):
 	syntax = None
 	if syntax_lists:
 		for syntax_list in syntax_lists:
-			if hide_view_ex in syntax_list[1]: 		# ['h', 'hpp', 'c', 'cpp'],
-				syntax = syntax_list[0] 	# "C++.sublime-syntax"
+			if hide_view_ex in syntax_list[1]: 	# ['h', 'hpp', 'c', 'cpp'],
+				syntax = syntax_list[0] 		# "C++.sublime-syntax"
 	if syntax is None:
 		syntax = global_settings.get('syntax', {'extension': hide_view_ex})
-	# print(filename, hide_view_ex, syntax)
+	if DEBUG:
+		print(filename, hide_view_ex, syntax)
 	hide_view.assign_syntax(syntax)
 	return hide_view, hide_view_ex
 
@@ -107,7 +106,6 @@ def get_indent(view, point):
 	if -1 == loc_indent.a or -1 == loc_indent.b:
 		loc_indent = view.find('^(    )+', line_start)
 		indent_len = 4
-		# print('find by space', loc_indent)
 	if loc_indent.a > line_end:
 		return 0
 	return (loc_indent.b - loc_indent.a) / indent_len
@@ -115,15 +113,11 @@ def get_indent(view, point):
 def ensure_func_in_class_by_indent(view, class_point, function_point):
 	class_indent = get_indent(view, class_point)
 	function_indent = get_indent(view, function_point)
-	print('indent', class_indent, function_indent)
 	if class_indent != function_indent - 1:
-		print('indent not match')
 		return False
 	next_class_indent = view.find('^(    ){0' + ',' + str(class_indent) + '}[^\t \r\n]+', class_point)
 	if -1 == next_class_indent.a or -1 == next_class_indent.b:
 		next_class_indent = view.find('^\t{0' + ',' + str(class_indent) + '}[^\t \r\n]+', class_point)
-		print('find by space')
-	print('next_class_indent', next_class_indent)
 	if -1 == next_class_indent.a or -1 == next_class_indent.b:
 		return True
 	return next_class_indent.b > function_point
@@ -133,8 +127,6 @@ def ensure_func_in_class_by_parans(view, class_point, function_point):
 	first_parentheses = view.find('{', class_point).a
 	if first_semicolon < first_parentheses:
 		return False
-	print('first_parentheses', first_parentheses)
-	print('first_semicolon', first_semicolon)
 	parentheses_l = 0
 	loc = first_parentheses
 	while True:
@@ -145,7 +137,6 @@ def ensure_func_in_class_by_parans(view, class_point, function_point):
 		if loc.b > function_point:
 			break
 		loc = loc.b
-		print('find next { after', loc)
 
 	parentheses_r = 0
 	loc = first_parentheses + 1
@@ -157,7 +148,6 @@ def ensure_func_in_class_by_parans(view, class_point, function_point):
 			break
 		loc = loc.b
 		parentheses_r += 1
-		print('find next } after', loc)
 
 	return parentheses_r < parentheses_l
 
@@ -167,11 +157,6 @@ def ensure_func_in_class(view, class_point, function_point):
 
 	return ensure_func_in_class_by_parans(view, class_point, function_point)
 
-# { "keys": ["ctrl+shift+space"], "command": "expand_selection", "args": {"to": "scope"} },
-# { "keys": ["ctrl+shift+j"], "command": "expand_selection", "args": {"to": "indentation"} },
-# { "keys": ["ctrl+m"], "command": "move_to", "args": {"to": "brackets"} },
-# {([^{}]*{[^{}]*}[^{}]*)*
-clean_name = re.compile('^\s*(public\s+|private\s+|protected\s+|static\s+|function\s+|def\s+)+', re.I)
 def parse_scope_full_name(view, region_row = None, region_col = None):
 	global DEBUG
 	if region_row is None or region_col is None:
@@ -180,11 +165,11 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 	else:
 		pt = view.text_point(region_row, region_col)
 
+	# skip calling
 	prec = view.substr(pt-1)
 	if '.' ==  prec or '>' == prec or '!' == prec or '\(' == prec or '\{' == prec:
-		print('skip calling')
 		return
-	# if (view.match_selector(pt, 'meta.function-call') and not view.match_selector(pt, 'meta.function-call')
+
 	is_class = view.match_selector(pt, 'entity.name.class | entity.name.struct')
 	if DEBUG:
 		view.sel().clear()
@@ -233,13 +218,14 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 				for r in function_params:
 					if function_point < r.begin():
 						param_name = view.substr(r)
-						# print('arg' , view.rowcol(function_point) , view.rowcol(r.begin()), ': ', view.substr(r))
 						break;
 
-	# print(class_point, class_name, function_point, function_name, s)
+	if DEBUG:
+		print(class_point, class_name, function_point, function_name, s)
 	if class_point is not None and function_point is not None:
 		if not ensure_func_in_class(view, class_point, function_point):
-			print(function_name, 'not in', class_name)
+			if DEBUG:
+				print(function_name, 'not in', class_name)
 			class_name = ''
 
 	if '' != class_name and '' != function_name:
@@ -288,7 +274,6 @@ class ShowDefinitionExTestCommand(sublime_plugin.WindowCommand):
 				loc = line.split(':')
 				view, _ = get_lint_file(base_dir + loc[0])
 				scope_name = parse_scope_full_name(view, int(loc[1])-1, int(loc[2])-1)
-				# view.show_popup(scope_name, sublime.HIDE_ON_MOUSE_MOVE_AWAY, max_width= max_popup_width, max_height= max_popup_height)
 				scope_name = scope_name.partition(' ')[2]
 				if scope_name != ans:
 					print('Error!!!!')
@@ -311,7 +296,6 @@ class ShowDefinitionExTestCommand(sublime_plugin.WindowCommand):
 
 class ShowDefinitionExSelCommand(sublime_plugin.TextCommand):
 	def run(self, edit):
-		# view = self.window.active_view()
 		view = self.view
 		max_popup_width, max_popup_height = view.viewport_extent()
 		scope_name = parse_scope_full_name(view)
@@ -319,14 +303,7 @@ class ShowDefinitionExSelCommand(sublime_plugin.TextCommand):
 
 class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 	def run(self, startTime, symbol, point):
-		global open_cnt
-		open_cnt = 0
-		global lastStartTime
-		# print('point: ', point)
-		# if symbol is None:
-		# 	view = self.window.active_view()
-		# 	symbol = view.substr(view.word(view.sel()[0]))
-
+		global lastStartTime, DEBUG
 		symbol_list = self.window.lookup_symbol_in_index(symbol)
 		if 0 == len(symbol_list):
 			print('no symbol_list of', symbol)
@@ -342,11 +319,11 @@ class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 		content_list = []
 		self.display_list = []
 		for idx, loc in enumerate(symbol_list):
+			# skip update
 			if startTime != lastStartTime:
-				print('skip update')
 				return
+			# skip own_file
 			if  own_file == loc[0] and own_row == loc[2][0]-1:
-				# print('skip own_file:', loc[0], ':', own_row+1, ':', loc[2][1])
 				continue
 			view, ex = get_lint_file(loc[0], own_file)
 			scope_name = None
@@ -396,7 +373,6 @@ class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 			self.window.active_view().show_popup(body, sublime.HIDE_ON_MOUSE_MOVE_AWAY, location= point, max_width= max_popup_width, max_height= max_popup_height, on_navigate= self.on_navigate)
 
 		sublime.status_message("")
-		# print('open_cnt', open_cnt)
 
 	def on_navigate(self, idx):
 		idx = int(idx)
@@ -418,7 +394,6 @@ class ShowDefinitionExToggleCommand(sublime_plugin.ApplicationCommand):
 		s = sublime.load_settings("Preferences.sublime-settings")
 		toggle_setting(s, 'show_definitions')
 		sublime.save_settings("Preferences.sublime-settings")
-		print('toggle show_definition to', s)
 
 def lookup_symbol(window, symbol):
 	if len(symbol.strip()) < 3:
@@ -494,10 +469,11 @@ def filter_current_symbol(view, point, symbol, locations):
 
 class ShowDefinitionExHoverCommand(sublime_plugin.EventListener):
 	def on_hover(self, view, point, hover_zone):
-		global lastStartTime, lastSymbol
+		global lastStartTime, lastSymbol, DEBUG
 		if sublime.HOVER_TEXT is not hover_zone or not self.is_enabled():
 			return
 
+		# decide to show or not to show by built-in logic
 		def score(scopes):
 			return view.score_selector(point, scopes)
 
@@ -516,39 +492,38 @@ class ShowDefinitionExHoverCommand(sublime_plugin.EventListener):
 			if score('string') and not score('string source'):
 				return
 
+		# decide to show or not to show by this package
 		symbol, locations = symbol_at_point(view, point)
 		locations = filter_current_symbol(view, point, symbol, locations)
 		if not locations:
-			print('skip by symbol check')
+			if DEBUG:
+				print('skip by symbol check')
 			return
-		print('symbol check -', symbol)
 
 		track = True
 		for select in ['constant.language', 'meta.statement']:	# may not track
 			if view.match_selector(point, select):
 				track = False
-				print('match', select, '-')
 				break
 		if not track:
 			for select in ['meta.function-call']:	# may track
 				if view.match_selector(point, select):
 					track = True
-					print('match', select, '+')
 					break
 		if track:
 			for select in ['meta.string', 'comment', 'storage.modifier', 'storage.type', 'keyword']:	# must not track
 				if view.match_selector(point, select):
 					track = False
-					print('match', select, '-')
 					break
 		if not track:
-			print('Finally decided to skip')
+			if DEBUG:
+				print('Finally decided to skip, select:', select)
 			return
 
-		# symbol = view.substr(view.word(point))
 		timeout = 5
 		if symbol is None or symbol == lastSymbol and lastStartTime + timeout > time.time():
-			print('symbol not change skip update')
+			if DEBUG:
+				print('symbol not change skip update')
 			return
 		sublime.status_message("Parse definitions of " + symbol + "... 0/" + str(len(sublime.active_window().lookup_symbol_in_index(symbol))))
 		lastSymbol = symbol
