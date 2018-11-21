@@ -340,11 +340,11 @@ class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 
 		self.display_list.sort(key = lambda x: x['name'])
 
-		str_tpl = '<code><i>%s</i>%s</code><small style="padding-left:%dpx"><a href=%d>%s:%d</a></small>'
+		str_tpl = '<a href=%d><code><i>%s</i>%s</code><small style="padding-left:%dpx">%s:%d</small></a>'
 		if 0 != len(self.display_list):
 			if startTime != lastStartTime:
 				print('skip update')
-			content = '<br>'.join([str_tpl % (self.display_list[idx]['ex'][0].upper(), html.escape(self.display_list[idx]['name'], False).replace(symbol, '<m>' + symbol + '</m>', 1), (max_len-len(self.display_list[idx]['name']))*em + 5, idx, html.escape(symplify_path(self.display_list[idx]['loc'][1]), False), self.display_list[idx]['loc'][2][0]) for idx in range(len(self.display_list))])
+			content = '<br>'.join([str_tpl % (idx, self.display_list[idx]['ex'][0].upper(), html.escape(self.display_list[idx]['name'], False).replace(symbol, '<m>' + symbol + '</m>', 1), (max_len-len(self.display_list[idx]['name']))*em + 5, html.escape(symplify_path(self.display_list[idx]['loc'][1]), False), self.display_list[idx]['loc'][2][0]) for idx in range(len(self.display_list))])
 			body = """
 				<body id=show-definitions>
 					<style>
@@ -358,11 +358,18 @@ class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 						}
 						m {
 							color: #FFFB9D;
+							text-decoration: none;
+						}
+						code {
+							font-family: monospace;
+							color: #FFFFFF;
+							text-decoration: none;
 						}
 						i {
 							color: #73AE86;
 							font-weight: bold;
 							font-style: normal;
+							text-decoration: none;
 							width: 30px
 						}
 					</style>
