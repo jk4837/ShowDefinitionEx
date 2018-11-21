@@ -24,8 +24,8 @@ def symplify_path(path):
 
 def get_file_ex(path):
 	path_l = path.lower()
-	if 'Makefile' in path_l:
-		return 'Makefile'
+	if 'makefile' in path_l:
+		return 'makefile'
 	return path_l[path_l.rfind('.')+1:]
 
 def file_related(ex1, ex2):
