@@ -202,7 +202,7 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 			for r in reversed(function_regions):
 				if r.contains(pt):
 					function_point = r.begin()
-					s = view.substr(r)
+					s = view.substr(view.split_by_newlines(r)[-1])
 					if '::' in s:
 						sp = s.rsplit('::')
 						class_name = sp[0].strip()

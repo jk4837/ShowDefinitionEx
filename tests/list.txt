@@ -81,3 +81,5 @@ tests\test.cpp:44:24
 ClassNameB::ClassNameB()
 tests\test.cpp:50:12
 FuncA()
+tests\test.cpp:54:1
+CCC(const std::string &DDD)
