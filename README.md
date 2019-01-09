@@ -1,8 +1,9 @@
 # Show Definition EX
-A sublime plugin for visually showing definition
+A sublime plugin for visually showing definition.
+Basically, this package work on every syntax supported by your Sublime Text.
 
 ### Usage
-Using `F10` to change between buit-in method and this plugin
+Using `F10` to change between built-in method and this plugin
 
 ### Demonstration
 From
