@@ -1,5 +1,6 @@
 # Show Definition EX
 A sublime plugin for visually showing definition.
+
 Basically, this package work on every syntax supported by your Sublime Text.
 
 ### Usage
