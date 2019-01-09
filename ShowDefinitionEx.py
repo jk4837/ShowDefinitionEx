@@ -9,9 +9,10 @@ lastStartTime = time.time()
 settings = {}
 
 def plugin_loaded():
-	global settings, global_settings, DEBUG
+	global settings, global_settings, DEBUG, MAX_LEN_TO_WRAP
 	settings = sublime.load_settings('show_definition_ex.sublime-settings')
 	DEBUG = settings.get('DEBUG', False)
+	MAX_LEN_TO_WRAP = settings.get('max_len_to_wrap', 60)
 	global_settings = sublime.active_window().active_view().settings()
 
 def symplify_path(path):
@@ -303,7 +304,7 @@ class ShowDefinitionExSelCommand(sublime_plugin.TextCommand):
 
 class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 	def run(self, startTime, symbol, point):
-		global lastStartTime, DEBUG
+		global lastStartTime, DEBUG, MAX_LEN_TO_WRAP
 		symbol_list = self.window.lookup_symbol_in_index(symbol)
 		if 0 == len(symbol_list):
 			print('no symbol_list of', symbol)
@@ -340,11 +341,15 @@ class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 
 		self.display_list.sort(key = lambda x: x['name'])
 
-		str_tpl = '<a href=%d><code><i>%s</i>%s</code><small style="padding-left:%dpx">%s:%d</small></a>'
 		if 0 != len(self.display_list):
 			if startTime != lastStartTime:
 				print('skip update')
-			content = '<br>'.join([str_tpl % (idx, self.display_list[idx]['ex'][0].upper(), html.escape(self.display_list[idx]['name'], False).replace(symbol, '<m>' + symbol + '</m>', 1), (max_len-len(self.display_list[idx]['name']))*em + 5, html.escape(symplify_path(self.display_list[idx]['loc'][1]), False), self.display_list[idx]['loc'][2][0]) for idx in range(len(self.display_list))])
+			if max_len < MAX_LEN_TO_WRAP:
+				str_tpl = '<a href=%d><code><i>%s</i>%s</code><small style="padding-left:%dpx">%s:%d</small></a>'
+				content = '<br />'.join([str_tpl % (idx, self.display_list[idx]['ex'][0].upper(), html.escape(self.display_list[idx]['name'], False).replace(symbol, '<m>' + symbol + '</m>', 1), (max_len-len(self.display_list[idx]['name']))*em + 5, html.escape(symplify_path(self.display_list[idx]['loc'][1]), False), self.display_list[idx]['loc'][2][0]) for idx in range(len(self.display_list))])
+			else:
+				str_tpl = '<a href=%d><code><i>%s</i>%s</code><br /><small style="padding-left:%dpx">%s:%d</small></a>'
+				content = '<br />'.join([str_tpl % (idx, self.display_list[idx]['ex'][0].upper(), html.escape(self.display_list[idx]['name'], False).replace(symbol, '<m>' + symbol + '</m>', 1), 2 * em, html.escape(symplify_path(self.display_list[idx]['loc'][1]), False), self.display_list[idx]['loc'][2][0]) for idx in range(len(self.display_list))])
 			body = """
 				<body id=show-definitions>
 					<style>
