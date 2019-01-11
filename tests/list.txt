@@ -77,9 +77,13 @@ tests\test.cpp:37:23
 ClassName::getSet()
 tests\test.cpp:41:7
 ClassNameB
-tests\test.cpp:44:24
+tests\test.cpp:44:12
 ClassNameB::ClassNameB()
-tests\test.cpp:50:12
+#tests\test.cpp:47:12
+#FuncC
+tests\test.cpp:50:1
+ClassNameC
+tests\test.cpp:52:12
 FuncA()
-tests\test.cpp:54:1
+tests\test.cpp:56:1
 CCC(const std::string &DDD)

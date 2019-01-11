@@ -127,22 +127,23 @@ def ensure_func_in_class_by_parans(view, class_point, function_point):
 	first_parentheses = view.find('{', class_point).a
 	if first_semicolon < first_parentheses:
 		return False
-	parentheses_l = 0
-	loc = first_parentheses
+
+	parentheses_l = 1
+	loc = first_parentheses + 1
 	while True:
-		parentheses_l += 1
 		loc = view.find('{', loc)
-		if -1 != loc.a or -1 != loc.b:
+		if -1 == loc.a or -1 == loc.b:
 			break
 		if loc.b > function_point:
 			break
 		loc = loc.b
+		parentheses_l += 1
 
 	parentheses_r = 0
 	loc = first_parentheses + 1
 	while True:
 		loc = view.find('}', loc)
-		if -1 != loc.a or -1 != loc.b:
+		if -1 == loc.a or -1 == loc.b:
 			break
 		if loc.b > function_point:
 			break
@@ -187,7 +188,7 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 		row, col = view.rowcol(r.a)
 		if row <= region_row:
 			class_point = r.a
-			r.b = view.find("[ \n\r\{\[\(]", r.a).a
+			r.b = view.find("[ \n\r\{\[\(;]", r.a).a
 			class_name = view.substr(r)
 			found = True
 			break;
@@ -205,6 +206,7 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 					s = view.substr(view.split_by_newlines(r)[-1])
 					if '::' in s:
 						sp = s.rsplit('::')
+						class_point = None
 						class_name = sp[0].strip()
 						function_name = '::'.join(sp[1:]).strip()
 					else:
@@ -256,7 +258,8 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 
 class ShowDefinitionExTestCommand(sublime_plugin.WindowCommand):
 	def run(self):
-		global global_settings
+		global global_settings, TEST
+		TEST = True
 		global_settings = sublime.active_window().active_view().settings()
 		max_popup_width, max_popup_height = self.window.active_view().viewport_extent()
 		base_dir = sublime.packages_path() + '\\ShowDefinitionEx\\'
@@ -335,7 +338,7 @@ class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 				max_len = max(max_len, len(scope_name))
 				self.display_list.append({'name': scope_name[1:], 'ex': ex, 'loc': loc})
 
-			if DEBUG:
+			if DEBUG and not TEST:
 				print('DEBUG mode, only show first match')
 				break
 				pass

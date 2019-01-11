@@ -42,7 +42,9 @@ class ClassNameB : public Base::BaseClass {
 }
 
 const ARG &ClassNameB::ClassNameB() {
+}
 
+const ARG &FuncC() {
 }
 
 class ClassNameC;
