@@ -94,7 +94,7 @@ def get_lint_file(filename, own_file = None):
 	if syntax is None:
 		syntax = global_settings.get('syntax', {'extension': hide_view_ex})
 	if DEBUG:
-		print(filename, hide_view_ex, syntax)
+		print('filename:', filename, 'hide_view_ex:', hide_view_ex, 'syntax:', syntax)
 	hide_view.assign_syntax(syntax)
 	return hide_view, hide_view_ex
 
@@ -221,7 +221,7 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 						break;
 
 	if DEBUG:
-		print(class_point, class_name, function_point, function_name, s)
+		print('class_point:', class_point, ', class_name:', class_name, ', function_point:', function_point, ', function_name:', function_name, ', s:', s)
 	if class_point is not None and function_point is not None:
 		if not ensure_func_in_class(view, class_point, function_point):
 			if DEBUG:
