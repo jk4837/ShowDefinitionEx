@@ -8,8 +8,11 @@ lastSymbol = None
 lastStartTime = time.time()
 settings = {}
 
-def plugin_loaded():
-	global settings, DEBUG, MAX_LEN_TO_WRAP
+def load_all_settings():
+	global global_settings, settings, DEBUG, MAX_LEN_TO_WRAP
+
+	global_settings = sublime.active_window().active_view().settings()
+
 	settings = sublime.load_settings('show_definition_ex.sublime-settings')
 	DEBUG = settings.get('DEBUG', False)
 	MAX_LEN_TO_WRAP = settings.get('max_len_to_wrap', 60)
@@ -258,9 +261,9 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 
 class ShowDefinitionExTestCommand(sublime_plugin.WindowCommand):
 	def run(self):
-		global global_settings, TEST
+		global TEST
 		TEST = True
-		global_settings = sublime.active_window().active_view().settings()
+		load_all_settings()
 		max_popup_width, max_popup_height = self.window.active_view().viewport_extent()
 		base_dir = sublime.packages_path() + '\\ShowDefinitionEx\\'
 		file = open(base_dir + "tests\\list.txt", "r")
@@ -314,6 +317,8 @@ class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 			print('no symbol_list of', symbol)
 			sublime.status_message("")
 			return
+
+		load_all_settings()
 
 		view = self.window.active_view()
 		em = view.em_width()
@@ -485,7 +490,7 @@ def filter_current_symbol(view, point, symbol, locations):
 
 class ShowDefinitionExHoverCommand(sublime_plugin.EventListener):
 	def on_hover(self, view, point, hover_zone):
-		global global_settings, lastStartTime, lastSymbol, DEBUG
+		global lastStartTime, lastSymbol, DEBUG
 		if sublime.HOVER_TEXT is not hover_zone or not self.is_enabled():
 			return
 
@@ -544,7 +549,6 @@ class ShowDefinitionExHoverCommand(sublime_plugin.EventListener):
 		sublime.status_message("Parse definitions of " + symbol + "... 0/" + str(len(sublime.active_window().lookup_symbol_in_index(symbol))))
 		lastSymbol = symbol
 		lastStartTime = time.time()
-		global_settings = sublime.active_window().active_view().settings()
 		sublime.set_timeout_async(lambda: view.window().run_command('show_definition_ex', {'symbol': symbol, 'point': point, 'startTime': lastStartTime}), 0)
 
 	def is_enabled(self):

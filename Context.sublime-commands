@@ -12,7 +12,7 @@
         "command": "edit_settings",
         "args": {
             "base_file": "${packages}/ShowDefinitionEx/show_definition_ex.sublime-settings",
-            "default": "// Reload plugin after edit\n{\n\t$0\n}\n"
+            "default": "{\n\t$0\n}\n"
         }
     },
     {
