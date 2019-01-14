@@ -1,6 +1,26 @@
 [
     {
-        "caption": "Show Definition Ex Test",
+        "caption": "ShowDefinitionEx: Run Test",
         "command": "show_definition_ex_test"
+    },
+    {
+        "caption": "ShowDefinitionEx: Toggle",
+        "command": "show_definition_ex_toggle"
+    },
+    {
+        "caption": "ShowDefinitionEx: Settings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/ShowDefinitionEx/show_definition_ex.sublime-settings",
+            "default": "// Reload plugin after edit\n{\n\t$0\n}\n"
+        }
+    },
+    {
+        "caption": "ShowDefinitionEx: Key Bindings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/ShowDefinitionEx/Default (${platform}).sublime-keymap",
+            "default": "{\n\t$0\n}\n"
+        }
     }
 ]
