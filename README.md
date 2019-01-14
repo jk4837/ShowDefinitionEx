@@ -27,6 +27,7 @@ To
 ### Settings
 	{
 		"DEBUG": false,
+		"show_path": true,
 		// Scope name and file path will display on two lines
 		// if length of scope name exceed this number
 		"max_len_to_wrap": 60,
