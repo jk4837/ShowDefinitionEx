@@ -1,10 +1,5 @@
 # Show Definition EX
-ShowDefinitionEx expand original definition lookup path:line with class and  overloading choices
-
-
-ShowDefinitionEx shows the definition of the function, not only path:line, but also the class name and function parameters.
-It can be useful if there is a complex class hierarchy in the project, or if multiple function overloads are used in the project.
-As for the built-in function of sublime, you can only see path:line of those relatated symbols, it's hard to decide which is what you want.
+ShowDefinitionEx expand original definition lookup path:line with class and overloading choices
 
 Basically, this package works on every syntax supported by your Sublime Text since it's base on the built-in function result, and open an invisible panel to parse the information of function.
 It only shows symbols in the same file extention, so you will not see a JS function appear when writing C++
