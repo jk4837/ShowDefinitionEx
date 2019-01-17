@@ -9,7 +9,7 @@ lastStartTime = time.time()
 settings = {}
 
 def load_all_settings():
-	global global_settings, settings, DEBUG, SHOW_PATH, MAX_LEN_TO_WRAP
+	global global_settings, settings, DEBUG, SHOW_PATH, MAX_LEN_TO_WRAP, MAX_LIST_ITEM
 
 	global_settings = sublime.active_window().active_view().settings()
 
@@ -17,6 +17,7 @@ def load_all_settings():
 	DEBUG = settings.get('DEBUG', False)
 	SHOW_PATH = settings.get('show_path', True)
 	MAX_LEN_TO_WRAP = settings.get('max_len_to_wrap', 60)
+	MAX_LIST_ITEM = settings.get('max_list_item', 20)
 
 def symplify_path(path):
 	s = path.split('/');
@@ -312,58 +313,81 @@ class ShowDefinitionExSelCommand(sublime_plugin.TextCommand):
 
 class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 	def run(self, startTime, symbol, point):
-		global lastStartTime, DEBUG, SHOW_PATH, MAX_LEN_TO_WRAP
-		symbol_list = self.window.lookup_symbol_in_index(symbol)
-		if 0 == len(symbol_list):
-			print('no symbol_list of', symbol)
+		global lastStartTime
+		# skip update
+		if startTime != lastStartTime:
+			return
+		self.startTime = startTime
+		self.symbol = symbol
+		self.point = point
+		self.symbol_list = self.window.lookup_symbol_in_index(self.symbol)
+		if 0 == len(self.symbol_list):
+			print('no symbol_list of', self.symbol)
 			sublime.status_message("")
 			return
 
 		load_all_settings()
 
 		view = self.window.active_view()
-		em = view.em_width()
-		own_file = view.file_name()
-		own_row, own_col = view.rowcol(point)
-		max_popup_width, max_popup_height = view.viewport_extent()
+		self.em = view.em_width()
+		self.own_file = view.file_name()
+		self.own_row, _ = view.rowcol(point)
+		self.max_popup_width, self.max_popup_height = view.viewport_extent()
+		self.start = 0
+		self.had_wrap = False
+		self.first_show = True
+		self.show()
+
+	def show(self):
+		global lastStartTime, DEBUG, SHOW_PATH, MAX_LEN_TO_WRAP, MAX_LIST_ITEM
 		max_len = 0
+		has_more = False
 		content_list = []
 		self.display_list = []
-		for idx, loc in enumerate(symbol_list):
+		idx_range = range(self.start, len(self.symbol_list))
+		for idx in idx_range:
 			# skip update
-			if startTime != lastStartTime:
+			if self.startTime != lastStartTime:
 				return
+			loc = self.symbol_list[idx]
 			# skip own_file
-			if  own_file == loc[0] and own_row == loc[2][0]-1:
+			if  self.own_file == loc[0] and self.own_row == loc[2][0]-1:
 				continue
-			view, ex = get_lint_file(loc[0], own_file)
+			view, ex = get_lint_file(loc[0], self.own_file)
 			scope_name = None
 			if view:
 				scope_name = parse_scope_full_name(view, loc[2][0]-1, loc[2][1]-1)
 			if scope_name:
 				max_len = max(max_len, len(scope_name))
 				self.display_list.append({'name': scope_name[1:], 'ex': ex, 'loc': loc})
+				if MAX_LIST_ITEM <= len(self.display_list):
+					has_more = idx != len(self.symbol_list) - 1
+					self.start = idx + 1
+					break
 
 			if DEBUG and not TEST:
 				print('DEBUG mode, only show first match')
 				break
-				pass
 
 		self.display_list.sort(key = lambda x: x['name'])
 
 		if 0 != len(self.display_list):
-			if startTime != lastStartTime:
+			if self.startTime != lastStartTime:
 				print('skip update')
 			if SHOW_PATH:
-				if max_len < MAX_LEN_TO_WRAP:
-					str_tpl = '<a href=%d><code><i>%s</i>%s</code><small style="padding-left:%dpx">%s:%d</small></a>'
-					content = '<br />'.join([str_tpl % (idx, self.display_list[idx]['ex'][0].upper(), html.escape(self.display_list[idx]['name'], False).replace(symbol, '<m>' + symbol + '</m>', 1), (max_len-len(self.display_list[idx]['name']))*em + 5, html.escape(symplify_path(self.display_list[idx]['loc'][1]), False), self.display_list[idx]['loc'][2][0]) for idx in range(len(self.display_list))])
-				else:
+				if max_len >= MAX_LEN_TO_WRAP or self.had_wrap:
+					self.had_wrap = True
 					str_tpl = '<a href=%d><code><i>%s</i>%s</code><br /><small style="padding-left:%dpx">%s:%d</small></a>'
-					content = '<br />'.join([str_tpl % (idx, self.display_list[idx]['ex'][0].upper(), html.escape(self.display_list[idx]['name'], False).replace(symbol, '<m>' + symbol + '</m>', 1), 2 * em, html.escape(symplify_path(self.display_list[idx]['loc'][1]), False), self.display_list[idx]['loc'][2][0]) for idx in range(len(self.display_list))])
+					content = '<br />'.join([str_tpl % (idx, self.display_list[idx]['ex'][0].upper(), html.escape(self.display_list[idx]['name'], False).replace(self.symbol, '<m>' + self.symbol + '</m>', 1), 2 * self.em, html.escape(symplify_path(self.display_list[idx]['loc'][1]), False), self.display_list[idx]['loc'][2][0]) for idx in range(len(self.display_list))])
+				else:
+					str_tpl = '<a href=%d><code><i>%s</i>%s</code><small style="padding-left:%dpx">%s:%d</small></a>'
+					content = '<br />'.join([str_tpl % (idx, self.display_list[idx]['ex'][0].upper(), html.escape(self.display_list[idx]['name'], False).replace(self.symbol, '<m>' + self.symbol + '</m>', 1), (max_len-len(self.display_list[idx]['name']))*self.em + 5, html.escape(symplify_path(self.display_list[idx]['loc'][1]), False), self.display_list[idx]['loc'][2][0]) for idx in range(len(self.display_list))])
 			else:
 				str_tpl = '<a href=%d><code><i>%s</i>%s</code></a>'
-				content = '<br />'.join([str_tpl % (idx, self.display_list[idx]['ex'][0].upper(), html.escape(self.display_list[idx]['name'], False).replace(symbol, '<m>' + symbol + '</m>', 1)) for idx in range(len(self.display_list))])
+				content = '<br />'.join([str_tpl % (idx, self.display_list[idx]['ex'][0].upper(), html.escape(self.display_list[idx]['name'], False).replace(self.symbol, '<m>' + self.symbol + '</m>', 1)) for idx in range(len(self.display_list))])
+
+			if has_more:
+				content += '<br /><br /><a href=more><n>click to see more ...</n></a>'
 
 			body = """
 				<body id=show-definitions>
@@ -390,21 +414,32 @@ class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 							font-weight: bold;
 							font-style: normal;
 							text-decoration: none;
-							width: 30px
+							width: 30px;
+						}
+						n {
+							font-weight: bold;
+							padding: 0px 0px 0px %dpx;
 						}
 					</style>
-				<h1>Definition of <m>%s</m> :</h1>
+				<h1>Definition of <m>%s</m> %s:</h1>
 				<p>%s</p>
 				</body>
-			""" % (symbol, content)
-			self.window.active_view().show_popup(body, sublime.HIDE_ON_MOUSE_MOVE_AWAY, location= point, max_width= max_popup_width, max_height= max_popup_height, on_navigate= self.on_navigate)
+			""" % (self.em*2, self.symbol, '' if not has_more else '%d/%d' % (self.start, len(self.symbol_list)), content)
+			if self.first_show:
+				self.window.active_view().show_popup(body, sublime.HIDE_ON_MOUSE_MOVE_AWAY, location= self.point, max_width= self.max_popup_width, max_height= self.max_popup_height, on_navigate= self.on_navigate)
+			else:
+				self.window.active_view().update_popup(body)
 
 		sublime.status_message("")
 
 	def on_navigate(self, idx):
-		idx = int(idx)
-		self.window.open_file('%s:%d:%d' % (self.display_list[idx]['loc'][0], self.display_list[idx]['loc'][2][0], self.display_list[idx]['loc'][2][1]), sublime.ENCODED_POSITION)
-		pass
+		global MAX_LIST_ITEM
+		if 'more' == idx:
+			self.first_show = False
+			self.show()
+		else:
+			idx = int(idx)
+			self.window.open_file('%s:%d:%d' % (self.display_list[idx]['loc'][0], self.display_list[idx]['loc'][2][0], self.display_list[idx]['loc'][2][1]), sublime.ENCODED_POSITION)
 
 def toggle_setting(settings, name):
 	if True == settings.get(name):

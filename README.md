@@ -26,6 +26,8 @@ To
 		// Scope name and file path will display on two lines
 		// if length of scope name exceed this number
 		"max_len_to_wrap": 60,
+		// Number of items displayed at a time
+		"max_list_item": 20,
 		// Manually setting parsing syntax
 		"syntax_lists":
 		[
