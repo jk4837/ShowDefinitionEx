@@ -164,7 +164,7 @@ def ensure_func_in_class(view, class_point, function_point):
 	return ensure_func_in_class_by_parans(view, class_point, function_point)
 
 def parse_scope_full_name(view, region_row = None, region_col = None):
-	global DEBUG
+	global DEBUG, hide_view_ex
 	if region_row is None or region_col is None:
 		pt = view.sel()[0].begin()
 		region_row, region_col = view.rowcol(pt)
@@ -173,11 +173,14 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 
 	# skip calling
 	prec = view.substr(pt-1)
-	prec_list = {'.', '>', '!', '\(', '\{'}
+	if 'js' == hide_view_ex:
+		prec_list = {'>', '!', '\(', '\{'}
+	else:
+		prec_list = {'.', '>', '!', '\(', '\{'}
 	if prec in prec_list:
 		if DEBUG:
 			print('    skip prefix char:', prec)
-		return
+			return
 
 	is_class = view.match_selector(pt, 'entity.name.class | entity.name.struct')
 	if DEBUG:
