@@ -26,3 +26,8 @@ protected:
 };
 
 }//NameSpace
+
+class Base: public Base::BaseClass {
+public:
+	Base();
+}

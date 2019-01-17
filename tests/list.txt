@@ -50,6 +50,10 @@ tests\test.h:20:15
 Base::ClassName::isValid()
 tests\test.h:21:13
 Base::ClassName::getSet()
+tests\test.h:30:7
+Base
+tests\test.h:32:2
+Base::Base()
 #
 # C Test
 #

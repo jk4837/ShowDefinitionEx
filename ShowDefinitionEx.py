@@ -193,7 +193,7 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 		if row <= region_row:
 			class_point = r.a
 			r.b = view.find("[ \n\r\{\[\(;]", r.a).a
-			class_name = view.substr(r)
+			class_name = view.substr(r).strip(':')
 			found = True
 			break;
 
