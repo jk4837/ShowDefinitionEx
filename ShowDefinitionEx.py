@@ -9,9 +9,9 @@ lastStartTime = time.time()
 settings = {}
 
 def load_all_settings():
-	global global_settings, settings, DEBUG, SHOW_PATH, MAX_LEN_TO_WRAP, MAX_LIST_ITEM
+	global hover_view, global_settings, settings, DEBUG, SHOW_PATH, MAX_LEN_TO_WRAP, MAX_LIST_ITEM
 
-	global_settings = sublime.active_window().active_view().settings()
+	global_settings = hover_view.settings()
 
 	settings = sublime.load_settings('show_definition_ex.sublime-settings')
 	DEBUG = settings.get('DEBUG', False)
@@ -263,10 +263,11 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 
 class ShowDefinitionExTestCommand(sublime_plugin.WindowCommand):
 	def run(self):
-		global TEST
+		global hover_view, TEST
 		TEST = True
+		hover_view = self.window.active_view()
 		load_all_settings()
-		max_popup_width, max_popup_height = self.window.active_view().viewport_extent()
+
 		base_dir = sublime.packages_path() + '\\ShowDefinitionEx\\'
 		file = open(base_dir + "tests\\list.txt", "r")
 		has_fail = False
@@ -313,14 +314,14 @@ class ShowDefinitionExSelCommand(sublime_plugin.TextCommand):
 
 class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 	def run(self, startTime, symbol, point):
-		global lastStartTime
+		global lastStartTime, hover_view
 		# skip update
 		if startTime != lastStartTime:
 			return
 		self.startTime = startTime
 		self.symbol = symbol
 		self.point = point
-		self.symbol_list = self.window.lookup_symbol_in_index(self.symbol)
+		self.symbol_list = hover_view.window().lookup_symbol_in_index(self.symbol)
 		if 0 == len(self.symbol_list):
 			print('no symbol_list of', self.symbol)
 			sublime.status_message("")
@@ -328,18 +329,17 @@ class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 
 		load_all_settings()
 
-		view = self.window.active_view()
-		self.em = view.em_width()
-		self.own_file = view.file_name()
-		self.own_row, _ = view.rowcol(point)
-		self.max_popup_width, self.max_popup_height = view.viewport_extent()
+		self.em = hover_view.em_width()
+		self.own_file = hover_view.file_name()
+		self.own_row, _ = hover_view.rowcol(point)
+		self.max_popup_width, self.max_popup_height = hover_view.viewport_extent()
 		self.start = 0
 		self.had_wrap = False
 		self.first_show = True
 		self.show()
 
 	def show(self):
-		global lastStartTime, DEBUG, SHOW_PATH, MAX_LEN_TO_WRAP, MAX_LIST_ITEM
+		global hover_view, lastStartTime, DEBUG, SHOW_PATH, MAX_LEN_TO_WRAP, MAX_LIST_ITEM
 		max_len = 0
 		has_more = False
 		content_list = []
@@ -426,9 +426,9 @@ class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 				</body>
 			""" % (self.em*2, self.symbol, '' if not has_more else '%d/%d' % (self.start, len(self.symbol_list)), content)
 			if self.first_show:
-				self.window.active_view().show_popup(body, sublime.HIDE_ON_MOUSE_MOVE_AWAY, location= self.point, max_width= self.max_popup_width, max_height= self.max_popup_height, on_navigate= self.on_navigate)
+				hover_view.show_popup(body, sublime.HIDE_ON_MOUSE_MOVE_AWAY, location= self.point, max_width= self.max_popup_width, max_height= self.max_popup_height, on_navigate= self.on_navigate)
 			else:
-				self.window.active_view().update_popup(body)
+				hover_view.update_popup(body)
 
 		sublime.status_message("")
 
@@ -531,7 +531,7 @@ def filter_current_symbol(view, point, symbol, locations):
 
 class ShowDefinitionExHoverCommand(sublime_plugin.EventListener):
 	def on_hover(self, view, point, hover_zone):
-		global lastStartTime, lastSymbol, DEBUG
+		global hover_view, lastStartTime, lastSymbol, DEBUG
 		if sublime.HOVER_TEXT is not hover_zone or not self.is_enabled():
 			return
 
@@ -587,9 +587,10 @@ class ShowDefinitionExHoverCommand(sublime_plugin.EventListener):
 			if DEBUG:
 				print('symbol not change skip update')
 			return
-		sublime.status_message("Parse definitions of " + symbol + "... 0/" + str(len(sublime.active_window().lookup_symbol_in_index(symbol))))
+		sublime.status_message("Parse definitions of " + symbol + "... 0/" + str(len(view.window().lookup_symbol_in_index(symbol))))
 		lastSymbol = symbol
 		lastStartTime = time.time()
+		hover_view = view
 		sublime.set_timeout_async(lambda: view.window().run_command('show_definition_ex', {'symbol': symbol, 'point': point, 'startTime': lastStartTime}), 0)
 
 	def is_enabled(self):
