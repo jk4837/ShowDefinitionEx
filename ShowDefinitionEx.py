@@ -60,7 +60,7 @@ def get_lint_file(filename, own_file = None):
 	ex = get_file_ex(filename)
 	if ex in settings.get('exclude_files',[]):	# Not index file extension
 		if DEBUG:
-			print('skip exclude_files file')
+			print('    skip exclude_files file')
 		return None, None
 
 	hide_view_ex = ex
@@ -68,7 +68,7 @@ def get_lint_file(filename, own_file = None):
 		own_ex = get_file_ex(own_file)
 		if not file_related(hide_view_ex, own_ex):
 			if DEBUG:
-				print('skip none related file', (hide_view_ex, own_ex))
+				print('    skip none related file', (hide_view_ex, own_ex))
 			return None, None
 
 	if hide_view is None:
@@ -99,7 +99,7 @@ def get_lint_file(filename, own_file = None):
 	if syntax is None:
 		syntax = global_settings.get('syntax', {'extension': hide_view_ex})
 	if DEBUG:
-		print('filename:', filename, 'hide_view_ex:', hide_view_ex, 'syntax:', syntax)
+		print('    filename:', filename, ', hide_view_ex:', hide_view_ex, ', syntax:', syntax)
 	hide_view.assign_syntax(syntax)
 	return hide_view, hide_view_ex
 
@@ -173,7 +173,10 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 
 	# skip calling
 	prec = view.substr(pt-1)
-	if '.' ==  prec or '>' == prec or '!' == prec or '\(' == prec or '\{' == prec:
+	prec_list = {'.', '>', '!', '\(', '\{'}
+	if prec in prec_list:
+		if DEBUG:
+			print('    skip prefix char:', prec)
 		return
 
 	is_class = view.match_selector(pt, 'entity.name.class | entity.name.struct')
@@ -228,11 +231,11 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 						break;
 
 	if DEBUG:
-		print('class_point:', class_point, ', class_name:', class_name, ', function_point:', function_point, ', function_name:', function_name, ', s:', s)
+		print('    class_point:', class_point, ', class_name:', class_name, ', function_point:', function_point, ', function_name:', function_name, ', s:', s)
 	if class_point is not None and function_point is not None:
 		if not ensure_func_in_class(view, class_point, function_point):
 			if DEBUG:
-				print(function_name, 'not in', class_name)
+				print('   ',function_name, 'not in', class_name)
 			class_name = ''
 
 	if '' != class_name and '' != function_name:
@@ -259,12 +262,13 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 	s = re.sub(r',(\w)', ', \\1', s)
 	s = s.replace('( ', '(')
 	s = s.replace(' )', ')')
+	if DEBUG:
+		print('    result:', s)
 	return s
 
 class ShowDefinitionExTestCommand(sublime_plugin.WindowCommand):
 	def run(self):
-		global hover_view, TEST
-		TEST = True
+		global hover_view
 		hover_view = self.window.active_view()
 		load_all_settings()
 
@@ -350,9 +354,12 @@ class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 			if self.startTime != lastStartTime:
 				return
 			loc = self.symbol_list[idx]
-			# skip own_file
 			if  self.own_file == loc[0] and self.own_row == loc[2][0]-1:
+				if DEBUG:
+					print('skip own_file')
 				continue
+			if DEBUG:
+				print('parse #%d:' % (idx))
 			view, ex = get_lint_file(loc[0], self.own_file)
 			scope_name = None
 			if view:
@@ -364,10 +371,6 @@ class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 					has_more = idx != len(self.symbol_list) - 1
 					self.start = idx + 1
 					break
-
-			if DEBUG and not TEST:
-				print('DEBUG mode, only show first match')
-				break
 
 		self.display_list.sort(key = lambda x: x['name'])
 
