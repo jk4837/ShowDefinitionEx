@@ -196,7 +196,7 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 		row, col = view.rowcol(r.a)
 		if row <= region_row:
 			class_point = r.a
-			r.b = view.find("[ \n\r\{\[\(;]", r.a).a
+			r.b = view.find("[ \n\r\{\[\(;,'\"]", r.a).a
 			class_name = view.substr(r).strip(':')
 			found = True
 			break;
@@ -223,7 +223,7 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 					break
 		# for parens wrap
 		if function_point:
-			function_params = view.find_by_selector('meta.function.parameters | meta.method.parameters')
+			function_params = view.find_by_selector('meta.function.parameters | meta.method.parameters | punctuation.section.group')
 			if function_params:
 				for r in function_params:
 					if function_point < r.begin():
@@ -231,7 +231,7 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 						break;
 
 	if DEBUG:
-		print('    class_point:', class_point, ', class_name:', class_name, ', function_point:', function_point, ', function_name:', function_name, ', s:', s)
+		print('    class_point:', class_point, ', class_name:', class_name, ', function_point:', function_point, ', function_name:', function_name, ', param_name', param_name, ', s:', s)
 	if class_point is not None and function_point is not None:
 		if not ensure_func_in_class(view, class_point, function_point):
 			if DEBUG:
@@ -239,9 +239,14 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 			class_name = ''
 
 	if '' != class_name and '' != function_name:
-		s = class_name + '::' + function_name + param_name
+		s = class_name + '::' + function_name
 	else:
-		s = class_name + function_name + param_name
+		s = class_name + function_name
+
+	if '' != param_name:
+		param_name = param_name if 0 < len(param_name) and param_name[0] != '(' else param_name[1:]
+		param_name = param_name if 0 < len(param_name) and param_name[-1] != ')' else param_name[:-1]
+		s = s + '(' + param_name + ')'
 
 	if found:
 		s = ('O ' if class_point == pt or function_point == pt else 'X ') + s
