@@ -469,7 +469,7 @@ class ShowDefinitionExToggleCommand(sublime_plugin.ApplicationCommand):
 		sublime.save_settings("Preferences.sublime-settings")
 
 def lookup_symbol(window, symbol):
-	if len(symbol.strip()) < 3:
+	if len(symbol.strip()) == 0:
 		return []
 
 	index_locations = window.lookup_symbol_in_index(symbol)
