@@ -335,8 +335,13 @@ class ShowDefinitionExSelCommand(sublime_plugin.TextCommand):
 	def run(self, edit):
 		view = self.view
 		max_popup_width, max_popup_height = view.viewport_extent()
-		scope_name = parse_scope_full_name(view)
-		view.show_popup(html.escape(scope_name, False), sublime.HIDE_ON_MOUSE_MOVE_AWAY, max_width= max_popup_width, max_height= max_popup_height)
+		self.scope_name = parse_scope_full_name(view)
+		view.show_popup(html.escape(self.scope_name, False) + ' <a href=1>Copy</a>', sublime.HIDE_ON_MOUSE_MOVE_AWAY, max_width= max_popup_width, max_height= max_popup_height, on_navigate= self.on_navigate)
+
+	def on_navigate(self, idx):
+		if '1' == idx:
+			sublime.set_clipboard(self.scope_name[2:])
+
 
 class ShowDefinitionExCommand(sublime_plugin.WindowCommand):
 	def run(self, startTime, symbol, point):
