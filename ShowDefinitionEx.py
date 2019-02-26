@@ -182,6 +182,11 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 			print('    skip prefix char:', prec)
 			return
 
+	if hide_view_ex in {'c', 'cpp', 'h', 'hpp'}:
+		split_char = '::'
+	else:
+		split_char = '.'
+
 	is_class = view.match_selector(pt, 'entity.name.class | entity.name.struct')
 	if DEBUG:
 		view.sel().clear()
@@ -215,14 +220,23 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 				if r.contains(pt):
 					function_point = r.begin()
 					s = view.substr(view.split_by_newlines(r)[-1])
-					if '::' in s:
+					function_name = s
+					found = True
+					if '::' is split_char and split_char in s:
 						sp = s.rsplit('::')
 						class_point = None
 						class_name = sp[0].strip()
 						function_name = '::'.join(sp[1:]).strip()
-					else:
-						function_name = s
-					found = True
+					elif '.' is split_char:
+						line = view.substr(view.expand_by_class(pt, sublime.CLASS_LINE_START | sublime.CLASS_LINE_END, " "))
+						pattern = re.compile(r'([A-Z][._0-9A-Za-z]*)\.' + s)
+						match = pattern.match(line)
+						if (match):
+							if DEBUG:
+								print('      line:', line)
+								print('      match:', match.string)
+							class_point = None
+							class_name = match.group(1)
 					break
 		# for parens wrap
 		if function_point:
@@ -242,7 +256,7 @@ def parse_scope_full_name(view, region_row = None, region_col = None):
 			class_name = ''
 
 	if '' != class_name and '' != function_name:
-		s = class_name + '::' + function_name
+		s = class_name + split_char + function_name
 	else:
 		s = class_name + function_name
 
