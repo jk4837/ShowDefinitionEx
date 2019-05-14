@@ -7,17 +7,24 @@ import html
 lastSymbol = None
 lastStartTime = time.time()
 settings = {}
+hover_view = None
+hide_view_ex = None
 
 def load_all_settings():
 	global hover_view, global_settings, settings, DEBUG, SHOW_PATH, MAX_LEN_TO_WRAP, MAX_LIST_ITEM
 
-	global_settings = hover_view.settings()
+	if hover_view is not None:
+		global_settings = hover_view.settings()
 
 	settings = sublime.load_settings('show_definition_ex.sublime-settings')
 	DEBUG = settings.get('DEBUG', False)
 	SHOW_PATH = settings.get('show_path', True)
 	MAX_LEN_TO_WRAP = settings.get('max_len_to_wrap', 60)
 	MAX_LIST_ITEM = settings.get('max_list_item', 20)
+
+def plugin_loaded():
+	load_all_settings()
+
 
 def symplify_path(path):
 	s = path.split('/');
@@ -562,6 +569,7 @@ def filter_current_symbol(view, point, symbol, locations):
 class ShowDefinitionExHoverCommand(sublime_plugin.EventListener):
 	def on_hover(self, view, point, hover_zone):
 		global hover_view, lastStartTime, lastSymbol, DEBUG
+		load_all_settings()
 		if sublime.HOVER_TEXT is not hover_zone or not self.is_enabled():
 			return
 
